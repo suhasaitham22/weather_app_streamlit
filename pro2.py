@@ -3,6 +3,7 @@ import streamlit as st
 import requests
 from datetime import datetime , timedelta
 import pandas as pd
+import plotly.graph_objects as go
 
 # INSERT YOUR API  KEY WHICH YOU PASTED IN YOUR secrets.toml file 
 api_key =  st.secrets["api_key"]
@@ -18,7 +19,7 @@ def getweather(city):
         country = json['sys']['country']
         temp = json['main']['temp'] - 273.15
         temp_feels = json['main']['feels_like'] - 273.15
-        humid = json['main']['humidity'] - 273.15
+        humid = json['main']['humidity']
         icon = json['weather'][0]['icon']
         lon = json['coord']['lon']
         lat = json['coord']['lat']
@@ -39,56 +40,52 @@ def get_hist_data(lat,lon,start):
         temp.append(t)     
     return data , temp
 
-# Define app title and description
-st.set_page_config(page_title='Weather App', page_icon=':partly_sunny:', layout='wide')
-st.title('Weather App')
-st.markdown('This is a simple weather app that allows you to get the latest weather data and historical data for the past 5 days for any city in the world.')
+# Function to display latest weather data
+def latest_weather(city):
+    res, json_data = getweather(city)
+    country, temp, temp_feels, humid, lon, lat, icon, des = res
+    st.write(f"**Current Weather in {city.title()}, {country}**")
+    st.write(f"**Temperature:** {temp}°C")
+    st.write(f"**Feels Like:** {temp_feels}°C")
+    st.write(f"**Humidity:** {humid}%")
+    st.write(f"**Description:** {des.title()}")
+    st.image(f"http://openweathermap.org/img/wn/{icon}.png")
 
-# Add an image
-st.image('image.jpg', use_column_width=True)
+# Function to display historical data
+def historical_data(city, start_date):
+    res, temp = get_hist_data(city["lat"], city["lon"], int(datetime.timestamp(start_date)))
+    df = pd.DataFrame(temp, columns=["Temperature"])
+    df.index = pd.to_datetime([datetime.utcfromtimestamp(res["hourly"][i]["dt"]) for i in range(len(res["hourly"]))])
+    st.write(f"**Historical Temperature Data for {city['name'].title()}**")
+    st.line_chart(df)
 
-# Create two columns
-col1, col2 = st.beta_columns(2)
+    # Create a box plot of the temperature data
+    fig = go.Figure()
+    fig.add_trace(go.Box(y=df["Temperature"], name="Temperature"))
+    fig.update_layout(title="Temperature Box Plot", xaxis_title="Temperature (°C)")
+    st.plotly_chart(fig)
 
-# Create a text input for city name in column 1
-with col1:
-    city_name = st.text_input("Enter a city name")
+    # Create a histogram of the temperature data
+    fig = go.Figure()
+    fig.add_trace(go.Histogram(x=df["Temperature"], nbinsx=20, name="Temperature"))
+    fig.update_layout(title="Temperature Histogram", xaxis_title="Temperature (°C)", yaxis_title="Count")
+    st.plotly_chart(fig)
 
-# Display current weather data and an image in column 2
-with col2:  
-    if city_name:
-        res , json = getweather(city_name)
-        st.success('Current Temperature: ' + str(round(res[1],2)) + '°C')
-        st.info('Feels Like: ' + str(round(res[2],2)) + '°C')
-        st.subheader('Status: ' + res[7])
-        web_str = "![Alt Text]"+"(http://openweathermap.org/img/wn/"+str(res[6])+"@2x.png)"
-        st.markdown(web_str)  
+# Streamlit app
+st.title("Weather App")
+st.write("Welcome to the Weather App! With this app, you can get the latest weather data and historical temperature data for any city in the world. Simply enter the name of the city and select a start date, and the app will display the relevant data. The app also includes visualizations of the historical temperature data, so you can see how temperatures have changed over time.")
+st.image("image.jpg", use_column_width=True)
+city = st.text_input("Enter a city name")
+start_date = st.date_input("Select a start date")
 
-# Create an expander to display historical data for the past 5 days
-if city_name:        
-    show_hist = st.beta_expander(label = 'Last 5 Days History')
-    with show_hist:
-        start_date_string = st.date_input('Select a date')
-        date_df = []
-        max_temp_df = []
-        for i in range(5):
-            date_Str = start_date_string - timedelta(i)
-            start_date = datetime.strptime(str(date_Str),"%Y-%m-%d")
-            timestamp_1 = datetime.timestamp(start_date)
-            his , temp = get_hist_data(res[5],res[4],int(timestamp_1))
-            date_df.append(date_Str)
-            max_temp_df.append(max(temp) - 273.5)
-        
-        # Create a table to display historical data
-        df = pd.DataFrame()
-        df['Date'] = date_df
-        df['Max Temperature'] = max_temp_df
-        st.table(df)
+if city:
+latest_weather(city)
 
-# Add a map to display the location of the city
-if city_name:
-    res , json = getweather(city_name)
-    st.map(pd.DataFrame({'Latitude' : [res[5]], 'Longitude' : [res[4]]}))
-
-# Add some additional information and credits
-st.markdown('Data provided by OpenWeatherMap API. Icon made by Freepik from www.flaticon.com')
+if city and start_date:
+res = requests.get(url.format(city, api_key))
+json_data = res.json()
+if json_data["cod"] != "404":
+city_data = {"name": json_data["name"], "lat": json_data["coord"]["lat"], "lon": json_data["coord"]["lon"]}
+historical_data(city_data, start_date)
+else:
+st.error("City not found!")
