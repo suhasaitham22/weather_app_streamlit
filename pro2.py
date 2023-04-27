@@ -30,16 +30,6 @@ def getweather(city):
     else:
         print("error in search !")
 
-# Function for HISTORICAL DATA
-def get_hist_data(lat,lon,start):
-    res = requests.get(url_1.format(lat,lon,start,api_key))
-    data = res.json()
-    temp = []
-    for hour in data["hourly"]:
-        t = hour["temp"]
-        temp.append(t)     
-    return data , temp
-
 # Function to display latest weather data
 def latest_weather(city):
     res, json_data = getweather(city)
@@ -51,9 +41,20 @@ def latest_weather(city):
     st.write(f"**Description:** {des.title()}")
     st.image(f"http://openweathermap.org/img/wn/{icon}.png")
 
+# Function for HISTORICAL DATA
+def get_hist_data(lat,lon,start):
+    res = requests.get(url_1.format(lat,lon,start,api_key))
+    data = res.json()
+    temp = []
+    for hour in data["hourly"]:
+        t = hour["temp"]
+        temp.append(t)     
+    return data , temp
+
 # Function to display historical data
 def historical_data(city, start_date):
-    res, temp = get_hist_data(city["lat"], city["lon"], int(datetime.timestamp(start_date)))
+    start_datetime = datetime.combine(start_date, datetime.min.time()) # convert date to datetime
+    res, temp = get_hist_data(city["lat"], city["lon"], int(datetime.timestamp(start_datetime)))
     df = pd.DataFrame(temp, columns=["Temperature"])
     df.index = pd.to_datetime([datetime.utcfromtimestamp(res["hourly"][i]["dt"]) for i in range(len(res["hourly"]))])
     st.write(f"**Historical Temperature Data for {city['name'].title()}**")
@@ -70,7 +71,6 @@ def historical_data(city, start_date):
     fig.add_trace(go.Histogram(x=df["Temperature"], nbinsx=20, name="Temperature"))
     fig.update_layout(title="Temperature Histogram", xaxis_title="Temperature (°C)", yaxis_title="Count")
     st.plotly_chart(fig)
-
 # Streamlit app
 st.title("Weather App")
 st.write("Welcome to the Weather App! With this app, you can get the latest weather data and historical temperature data for any city in the world. Simply enter the name of the city and select a start date, and the app will display the relevant data. The app also includes visualizations of the historical temperature data, so you can see how temperatures have changed over time.")
