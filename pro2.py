@@ -45,7 +45,7 @@ st.title('Weather App')
 st.markdown('This is a simple weather app that allows you to get the latest weather data and historical data for the past 5 days for any city in the world.')
 
 # Add an image
-st.image('weather-image.jpg', use_column_width=True)
+st.image('image.jpg', use_column_width=True)
 
 # Create two columns
 col1, col2 = st.beta_columns(2)
