@@ -79,13 +79,13 @@ city = st.text_input("Enter a city name")
 start_date = st.date_input("Select a start date")
 
 if city:
-latest_weather(city)
+    latest_weather(city)
 
 if city and start_date:
-res = requests.get(url.format(city, api_key))
-json_data = res.json()
-if json_data["cod"] != "404":
-city_data = {"name": json_data["name"], "lat": json_data["coord"]["lat"], "lon": json_data["coord"]["lon"]}
-historical_data(city_data, start_date)
-else:
-st.error("City not found!")
+    res = requests.get(url.format(city, api_key))
+    json_data = res.json()
+    if json_data["cod"] != "404":
+        city_data = {"name": json_data["name"], "lat": json_data["coord"]["lat"], "lon": json_data["coord"]["lon"]}
+        historical_data(city_data, start_date)
+    else:
+        st.error("City not found!")
