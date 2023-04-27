@@ -41,15 +41,6 @@ def latest_weather(city):
     st.write(f"**Description:** {des.title()}")
     st.image(f"http://openweathermap.org/img/wn/{icon}.png")
 
-# Function for HISTORICAL DATA
-def get_hist_data(lat,lon,start):
-    res = requests.get(url_1.format(lat,lon,start,api_key))
-    data = res.json()
-    temp = []
-    for hour in data["hourly"]:
-        t = hour["temp"]
-        temp.append(t)     
-    return data , temp
 
 # Function to display historical data
 def historical_data(city, start_date):
